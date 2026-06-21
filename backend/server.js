@@ -25,9 +25,19 @@ const server = http.createServer(app);
 
 const CLIENT_URL = process.env.CLIENT_URL || null;
 
-const allowedOrigin = CLIENT_URL
-  ? CLIENT_URL
-  : (origin, cb) => cb(null, /^http:\/\/localhost:\d+$/.test(origin || '') || !origin);
+const allowedOrigins = [
+  /^http:\/\/localhost:\d+$/,
+  /^https:\/\/.*\.vercel\.app$/,
+];
+if (CLIENT_URL) allowedOrigins.push(CLIENT_URL);
+
+const allowedOrigin = (origin, cb) => {
+  if (!origin) return cb(null, true); // non-browser / server-to-server
+  const ok = allowedOrigins.some(p =>
+    typeof p === 'string' ? p === origin : p.test(origin)
+  );
+  cb(ok ? null : new Error('CORS blocked'), ok);
+};
 
 const io = new Server(server, {
   cors: {
